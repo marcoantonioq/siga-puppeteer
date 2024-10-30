@@ -1,6 +1,47 @@
 import { excelDateToJSDate } from "../util/sheet.js";
 import PuppeteerManager from "./PuppeteerManager.js";
 
+export class Fluxo {
+  constructor({
+    FLUXO = "Saída",
+    REGIONAL = "",
+    IGREJA = "",
+    IGREJA_ADM = "",
+    IGREJA_COD = "",
+    IGREJA_TIPO = "",
+    IGREJA_DESC = "",
+    CATEGORIA = "",
+    DATA = "",
+    VALOR = 0,
+    OBSERVACOES = "",
+    ORIGEM = "Siga",
+    REF = "",
+    CREATED = new Date(),
+  }) {
+    Object.assign(this, {
+      FLUXO,
+      REGIONAL,
+      IGREJA,
+      IGREJA_ADM,
+      IGREJA_COD,
+      IGREJA_TIPO,
+      IGREJA_DESC,
+      CATEGORIA,
+      DATA,
+      VALOR,
+      OBSERVACOES,
+      ORIGEM,
+      REF,
+      CREATED,
+      UPDATED: new Date(),
+    });
+  }
+
+  static create(options) {
+    return new Fluxo(options);
+  }
+}
+
 export const coletas = async (msg = {}) => {
   try {
     for (const { start, end, ref } of msg.settings.betweenDates) {
@@ -71,17 +112,19 @@ export const coletas = async (msg = {}) => {
                 if (headers[x] === "Total") break;
                 if (!headers[x] || !/^[1-9]/.test(values[i][x])) continue;
 
-                msg.tables.fluxos.push({
-                  FLUXO: "Coleta",
-                  IGREJA: nomeIgreja,
-                  IGREJA_DESC: nomeIgreja,
-                  CATEGORIA: tipo,
-                  DATA: end,
-                  VALOR: values[i][x],
-                  OBSERVACOES: headers[x],
-                  REF: ref,
-                  ORIGEM: "SIGA",
-                });
+                msg.tables.fluxos.push(
+                  Fluxo.create({
+                    FLUXO: "Coleta",
+                    IGREJA: nomeIgreja,
+                    IGREJA_DESC: nomeIgreja,
+                    CATEGORIA: tipo,
+                    DATA: end,
+                    VALOR: values[i][x],
+                    OBSERVACOES: headers[x],
+                    REF: ref,
+                    ORIGEM: "SIGA",
+                  })
+                );
               }
             }
           }
@@ -149,19 +192,21 @@ export const despesas = async (msg = {}) => {
               ) {
                 Localidade = row[0];
               } else if (/^\d+$/.test(`${row[0]}`)) {
-                msg.tables.fluxos.push({
-                  FLUXO: "Saída",
-                  IGREJA: Localidade,
-                  IGREJA_DESC: Localidade,
-                  CATEGORIA: row[6],
-                  DATA: new Date(
-                    new Date(1899, 11, 30).getTime() + row[0] * 86400000
-                  ),
-                  VALOR: row[30] || 0,
-                  OBSERVACOES: `${row[8]}, NF: ${row[4]}; ${row[3]}; Valor: ${row[15]}; Multa: ${row[21]}; Juros: ${row[24]}; Desconto: ${row[27]}`,
-                  REF: ref,
-                  ORIGEM: "SIGA",
-                });
+                msg.tables.fluxos.push(
+                  Fluxo.create({
+                    FLUXO: "Saída",
+                    IGREJA: Localidade,
+                    IGREJA_DESC: Localidade,
+                    CATEGORIA: row[6],
+                    DATA: new Date(
+                      new Date(1899, 11, 30).getTime() + row[0] * 86400000
+                    ),
+                    VALOR: row[30] || 0,
+                    OBSERVACOES: `${row[8]}, NF: ${row[4]}; ${row[3]}; Valor: ${row[15]}; Multa: ${row[21]}; Juros: ${row[24]}; Desconto: ${row[27]}`,
+                    REF: ref,
+                    ORIGEM: "SIGA",
+                  })
+                );
               }
             }
           } catch (error) {
@@ -230,16 +275,18 @@ export const depositos = async (msg = {}) => {
               if (/^(SET|ADM|BR|PIA)/.test(`${values[i][0]}`)) {
                 igrejaNome = values[i][0];
               } else if (/^\d\d\/\d{4}/.test(values[i][2])) {
-                msg.tables.fluxos.push({
-                  FLUXO: "Deposito",
-                  IGREJA: igrejaNome,
-                  IGREJA_DESC: igrejaNome,
-                  DATA: new Date(excelDateToJSDate(values[i][3])),
-                  VALOR: values[i][18],
-                  OBSERVAÇÕES: values[i][7],
-                  REF: ref,
-                  ORIGEM: "SIGA",
-                });
+                msg.tables.fluxos.push(
+                  Fluxo.create({
+                    FLUXO: "Deposito",
+                    IGREJA: igrejaNome,
+                    IGREJA_DESC: igrejaNome,
+                    DATA: new Date(excelDateToJSDate(values[i][3])),
+                    VALOR: values[i][18],
+                    OBSERVAÇÕES: values[i][7],
+                    REF: ref,
+                    ORIGEM: "SIGA",
+                  })
+                );
               }
             } catch (error) {
               console.log("Erro ao processar despesa: ", error);
