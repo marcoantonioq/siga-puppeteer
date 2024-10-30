@@ -24,19 +24,8 @@ export class Igreja {
   }
 }
 
-// Cache para igrejas, chaveado por username do usuário
-const igrejasUserCache = new Map();
-const CACHE_EXPIRY_TIME = 2 * 60 * 60 * 1000;
-
 export const getIgrejas = async (msg = {}) => {
   const currentTime = Date.now();
-
-  if (igrejasUserCache.has(msg.username)) {
-    const { data, timestamp } = igrejasUserCache.get(msg.username);
-    if (currentTime - timestamp < CACHE_EXPIRY_TIME) {
-      return data;
-    }
-  }
 
   const page = await PuppeteerManager.createPage({
     cookies: msg.settings.cookies,
@@ -100,10 +89,6 @@ export const getIgrejas = async (msg = {}) => {
 
     const results = await Promise.all(
       empresas.map(async (empresa) => {
-        if (igrejasUserCache.has(empresa.cod)) {
-          return igrejasUserCache.get(empresa.cod).data;
-        }
-
         const igrejas = await page.evaluate(
           async (msg, empresa) => {
             try {
@@ -160,23 +145,11 @@ export const getIgrejas = async (msg = {}) => {
           empresa
         );
 
-        // Armazena no cache de empresas
-        igrejasUserCache.set(empresa.cod, {
-          data: igrejas,
-          timestamp: currentTime,
-        });
-
         return igrejas;
       })
     );
 
     const flatResults = results.flatMap((e) => e).map((e) => Igreja.create(e));
-
-    // Armazena o resultado final no cache do usuário
-    igrejasUserCache.set(msg.username, {
-      data: flatResults,
-      timestamp: currentTime,
-    });
 
     msg.tables.igrejas = flatResults;
     return flatResults;

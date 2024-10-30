@@ -12,25 +12,34 @@ const settings = {
 };
 
 export const PuppeteerManager = {
-  browser: null,
-  pages: [],
-  timeoutId: null,
+  browsers: new Map(),
+  timeoutIds: new Map(),
 
-  async getBrowser() {
-    if (!this.browser) {
-      this.browser = await puppeteer.launch({
-        headless: settings.headless,
-        args: ["--no-sandbox"],
-      });
-      console.log("Navegador iniciado.");
+  async createBrowserInstance(cookies) {
+    const browser = await puppeteer.launch({
+      headless: settings.headless,
+      args: ["--no-sandbox"],
+    });
+    console.log("Navegador iniciado para:", cookies);
+    this.browsers.set(cookies, browser);
+    return browser;
+  },
+
+  async getBrowser(user) {
+    // Retorna um navegador existente ou cria um novo para o perfil de cookies
+    if (!this.browsers.has(user)) {
+      const browser = await this.createBrowserInstance(user);
+      this.resetCloseTimer(user);
+      return browser;
     }
-    return this.browser;
+    this.resetCloseTimer(user);
+    return this.browsers.get(user);
   },
 
   async createPage({ cookies = "", domain = "" } = {}) {
-    await this.getBrowser();
-    const page = await this.browser.newPage();
-    this.pages.push(page);
+    const user = cookies.match(/(?:^|; )user=([^;]*)/)[1];
+    const browser = await this.getBrowser(user);
+    const page = await browser.newPage();
 
     const client = await page.target().createCDPSession();
     await client.send("Page.setDownloadBehavior", {
@@ -40,9 +49,7 @@ export const PuppeteerManager = {
 
     page.setRequestInterception(true);
     page.on("request", (request) => {
-      ["image"].includes(
-        request.resourceType()
-      )
+      ["image"].includes(request.resourceType())
         ? request.abort()
         : request.continue();
     });
@@ -55,9 +62,7 @@ export const PuppeteerManager = {
       await page.setCookie(...parsedCookies);
     }
 
-    this.resetCloseTimer();
-    page.on("close", () => this.onPageClose(page));
-
+    page.on("close", () => this.onPageClose(user, page));
     return page;
   },
 
@@ -85,31 +90,32 @@ export const PuppeteerManager = {
     });
   },
 
-  async closeBrowser() {
-    if (this.browser) {
+  async closeBrowser(user) {
+    if (this.browsers.has(user)) {
+      const browser = this.browsers.get(user);
       fs.readdirSync(settings.downloadDir).forEach((file) => {
         const filePath = path.join(settings.downloadDir, file);
         if (fs.statSync(filePath).isFile()) fs.unlinkSync(filePath);
       });
-      await this.browser.close();
-      this.browser = null;
-      this.pages = [];
-      console.log("Navegador fechado.");
+      await browser.close();
+      this.browsers.delete(user);
+      console.log("Navegador fechado para o perfil ", user);
     }
   },
 
-  resetCloseTimer() {
-    clearTimeout(this.timeoutId);
-    this.timeoutId = setTimeout(() => {
-      if (this.pages.length === 0) {
-        this.closeBrowser();
-      }
-    }, 5 * 60 * 1000); // 5 minutos
+  resetCloseTimer(user) {
+    if (this.timeoutIds.has(user)) clearTimeout(this.timeoutIds.get(user));
+    this.timeoutIds.set(
+      user,
+      setTimeout(() => this.closeBrowser(user), 5 * 60 * 1000) // 5 minutos
+    );
   },
 
-  onPageClose(page) {
-    this.pages = this.pages.filter((p) => p !== page);
-    this.resetCloseTimer();
+  onPageClose(cookies, page) {
+    const browser = this.browsers.get(cookies);
+    if (browser) {
+      this.resetCloseTimer(cookies);
+    }
   },
 };
 

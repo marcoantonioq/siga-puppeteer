@@ -27,10 +27,10 @@ export const searchSiga = async (msg) => {
     const adms = msg.tables.igrejas.filter(
       (e) => e.IGREJA_TIPO === 3 && filterRegex.test(e.IGREJA_DESC)
     );
+    console.log("Adms: ", adms);
 
     for (const adm of adms) {
       await Igreja.alterarIgreja(msg, adm);
-      console.log("Adm: ", adm);
       await Fluxos.coletas(msg, adm);
       await Fluxos.despesas(msg, adm);
       await Fluxos.depositos(msg, adm);
