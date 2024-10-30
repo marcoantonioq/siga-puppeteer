@@ -1,0 +1,16 @@
+version: "3.8"
+
+services:
+  siga:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=production
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
