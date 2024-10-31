@@ -32,9 +32,9 @@ export const searchSiga = async (msg) => {
 
     for (const adm of adms) {
       await Igreja.alterarIgreja(msg, adm);
+      await Fluxos.depositos(msg, adm);
       await Fluxos.coletas(msg, adm);
       await Fluxos.despesas(msg, adm);
-      await Fluxos.depositos(msg, adm);
       await Eventos.agenda(msg, adm);
     }
 

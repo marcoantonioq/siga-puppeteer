@@ -270,7 +270,10 @@ export const depositos = async (msg = {}) => {
             waitUntil: "networkidle0",
           });
 
-          const onValues = PuppeteerManager.listenerDownload({ page });
+          const onValues = PuppeteerManager.listenerDownload({
+            page,
+            delay: 3000,
+          });
 
           await Promise.all([
             page.select('select[id="f_competencia"]', competencia.value),
@@ -281,7 +284,9 @@ export const depositos = async (msg = {}) => {
             'form[action="TES00702.aspx"] button[type="submit"]'
           );
 
+          await new Promise((res) => setTimeout(res, 3000));
           const values = await onValues;
+
           if (!values) return;
           var igrejaNome = "";
 
