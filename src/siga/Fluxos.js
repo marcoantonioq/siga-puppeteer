@@ -42,7 +42,7 @@ export class Fluxo {
   }
 }
 
-export const coletas = async (msg = {}) => {
+export const coletas = async (msg = {}, adm) => {
   try {
     for (const { start, end, ref } of msg.settings.betweenDates) {
       const page = await PuppeteerManager.createPage({
@@ -111,10 +111,17 @@ export const coletas = async (msg = {}) => {
               for (let x = 7; x < headers.length; x++) {
                 if (headers[x] === "Total") break;
                 if (!headers[x] || !/^[1-9]/.test(values[i][x])) continue;
+                const report = msg.tables.igrejas.find(
+                  (ig) => ig?.IGREJA_DESC === nomeIgreja
+                );
 
                 msg.tables.fluxos.push(
                   Fluxo.create({
                     FLUXO: "Coleta",
+                    REGIONAL: report.REGIONAL,
+                    IGREJA_ADM: report.IGREJA_DESC,
+                    IGREJA_COD: report.IGREJA_COD,
+                    IGREJA_TIPO: report.IGREJA_TIPO,
                     IGREJA: nomeIgreja,
                     IGREJA_DESC: nomeIgreja,
                     CATEGORIA: tipo,
@@ -192,9 +199,16 @@ export const despesas = async (msg = {}) => {
               ) {
                 Localidade = row[0];
               } else if (/^\d+$/.test(`${row[0]}`)) {
+                const report = msg.tables.igrejas.find(
+                  (ig) => ig?.IGREJA_DESC === Localidade
+                );
                 msg.tables.fluxos.push(
                   Fluxo.create({
                     FLUXO: "Saída",
+                    REGIONAL: report.REGIONAL,
+                    IGREJA_ADM: report.IGREJA_DESC,
+                    IGREJA_COD: report.IGREJA_COD,
+                    IGREJA_TIPO: report.IGREJA_TIPO,
                     IGREJA: Localidade,
                     IGREJA_DESC: Localidade,
                     CATEGORIA: row[6],
@@ -275,9 +289,16 @@ export const depositos = async (msg = {}) => {
               if (/^(SET|ADM|BR|PIA)/.test(`${values[i][0]}`)) {
                 igrejaNome = values[i][0];
               } else if (/^\d\d\/\d{4}/.test(values[i][2])) {
+                const report = msg.tables.igrejas.find(
+                  (ig) => ig?.IGREJA_DESC === igrejaNome
+                );
                 msg.tables.fluxos.push(
                   Fluxo.create({
                     FLUXO: "Deposito",
+                    REGIONAL: report.REGIONAL,
+                    IGREJA_ADM: report.IGREJA_DESC,
+                    IGREJA_COD: report.IGREJA_COD,
+                    IGREJA_TIPO: report.IGREJA_TIPO,
                     IGREJA: igrejaNome,
                     IGREJA_DESC: igrejaNome,
                     DATA: new Date(excelDateToJSDate(values[i][3])),

@@ -1,7 +1,7 @@
 import express from "express";
 import { searchSiga } from "../../siga/index.js";
 
-const CACHE_DURATION = 10 * 60 * 1000;
+const CACHE_DURATION = 30 * 60 * 1000;
 
 export const app = express();
 const processingClients = {};

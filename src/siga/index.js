@@ -22,6 +22,7 @@ export const searchSiga = async (msg) => {
     );
 
     await Igreja.getIgrejas(msg);
+    console.log("Buscar igrejas...");
 
     const filterRegex = new RegExp(msg.settings.filter, "i");
     const adms = msg.tables.igrejas.filter(
@@ -49,10 +50,6 @@ export const searchSiga = async (msg) => {
     save("msg.json", JSON.stringify(msg, null, 2));
     return msg;
   } catch (error) {
-    console.log("Erro ao processo SIGA: ", error);
-    return {
-      ...msg,
-      error: error.message,
-    };
+    throw new Error("Erro ao processo SIGA: " + error.message);
   }
 };

@@ -25,8 +25,6 @@ export class Igreja {
 }
 
 export const getIgrejas = async (msg = {}) => {
-  const currentTime = Date.now();
-
   const page = await PuppeteerManager.createPage({
     cookies: msg.settings.cookies,
     domain: "siga.congregacao.org.br",
@@ -53,6 +51,7 @@ export const getIgrejas = async (msg = {}) => {
         ?.trim();
     });
     if (!msg.username) throw new Error("Usuário não identificado.");
+    console.log("Usuário logado: ", msg.username);
 
     // Coletar igrejas
     await page.evaluate(() => {
