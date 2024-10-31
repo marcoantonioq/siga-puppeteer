@@ -38,6 +38,7 @@ export const agenda = async (msg = {}, adm) => {
     const eventos = await page.evaluate(
       async (msg, adm) => {
         const eventos = [];
+        console.log("Eventos: ", msg.settings.date1, msg.settings.date2);
 
         try {
           const response = await fetch(
