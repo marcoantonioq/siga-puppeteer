@@ -2,12 +2,10 @@ version: "3.8"
 
 services:
   siga:
+    image: siga
     build:
       context: .
       dockerfile: Dockerfile
-    volumes:
-      - .:/app
-      - /app/node_modules
     environment:
       - NODE_ENV=production
       - PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
