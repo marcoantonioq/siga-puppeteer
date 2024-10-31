@@ -263,13 +263,14 @@ export const depositos = async (msg = {}) => {
         cookies: msg.settings.cookies,
         domain: "siga.congregacao.org.br",
       });
-      const onValues = PuppeteerManager.listenerDownload({ page });
       try {
         const competencia = competencias.find((e) => ref === e.label);
         if (competencia) {
           await page.goto("https://siga.congregacao.org.br/TES/TES00701.aspx", {
             waitUntil: "networkidle0",
           });
+
+          const onValues = PuppeteerManager.listenerDownload({ page });
 
           await Promise.all([
             page.select('select[id="f_competencia"]', competencia.value),
