@@ -18,7 +18,17 @@ export const PuppeteerManager = {
   async createBrowserInstance(cookies) {
     const browser = await puppeteer.launch({
       headless: settings.headless,
-      args: ["--no-sandbox"],
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-web-security",
+        `--disable-infobars`,
+        `--window-size=1280,800`,
+        `--disable-extensions`,
+        `--disable-dev-shm-usage`,
+        `--disable-gpu`,
+        `--allow-insecure-localhost`,
+      ],
     });
     console.log("Navegador iniciado para:", cookies);
     this.browsers.set(cookies, browser);
@@ -76,11 +86,15 @@ export const PuppeteerManager = {
               escape(contentDisposition.split("filename=")[1].replace(/"/g, ""))
             );
             try {
-              const fileName = `${settings.downloadDir}/${filename}`;
+              const fileName = path.join(settings.downloadDir, filename);
               await new Promise((res) => setTimeout(res, 3 * delay));
-              const fileBuffer = fs.readFileSync(fileName);
-              const values = await sheetToArray(fileBuffer);
-              resolve(values);
+              if (fs.existsSync(fileName)) {
+                const fileBuffer = fs.readFileSync(fileName);
+                const values = await sheetToArray(fileBuffer);
+                resolve(values);
+              } else {
+                reject(new Error(`Arquivo não encontrado: ${fileName}`));
+              }
             } catch (error) {
               reject(error);
             }

@@ -1,4 +1,4 @@
-import { excelDateToJSDate } from "../util/sheet.js";
+import { excelDateToJSDate, sheetToArray } from "../util/sheet.js";
 import PuppeteerManager from "./PuppeteerManager.js";
 
 export class Fluxo {
@@ -238,7 +238,7 @@ export const despesas = async (msg = {}) => {
   }
 };
 
-export const depositos = async (msg = {}) => {
+export const depositos = async (msg = {}, adm) => {
   try {
     const pageComp = await PuppeteerManager.createPage({
       cookies: msg.settings.cookies,
@@ -270,11 +270,6 @@ export const depositos = async (msg = {}) => {
             waitUntil: "networkidle0",
           });
 
-          const onValues = PuppeteerManager.listenerDownload({
-            page,
-            delay: 3000,
-          });
-
           await Promise.all([
             page.select('select[id="f_competencia"]', competencia.value),
             page.select("#f_saidapara", "Excel"),
@@ -284,8 +279,46 @@ export const depositos = async (msg = {}) => {
             'form[action="TES00702.aspx"] button[type="submit"]'
           );
 
-          await new Promise((res) => setTimeout(res, 3000));
-          const values = await onValues;
+          const requestBody = new URLSearchParams({
+            f_competencia: competencia.value,
+            f_data1: "",
+            f_data2: "",
+            f_estabelecimento: adm.IGREJA_COD,
+            f_saidapara: "Excel",
+            f_ordenacao: "alfabetica",
+            __initPage__: "S",
+          }).toString();
+
+          await page.addScriptTag({
+            url: "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js",
+          });
+
+          const values = await page.evaluate(
+            async (body, msg) => {
+              const res = await fetch(
+                "https://siga.congregacao.org.br/TES/TES00702.aspx",
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    Cookie: msg.settings.cookies,
+                  },
+                  body,
+                }
+              );
+              const buffer = await res.arrayBuffer();
+              const workbook = XLSX.read(new Uint8Array(buffer), {
+                type: "array",
+              });
+              const sheetName = workbook.SheetNames[0];
+              const sheet = workbook.Sheets[sheetName];
+              const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+              return data;
+            },
+            requestBody,
+            msg
+          );
 
           if (!values) return;
           var igrejaNome = "";
