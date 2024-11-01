@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top" />
+    <script src="https://unpkg.com/vue@3.2.47/dist/vue.global.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        background-color: #f4f4f4;
+      }
+      h1 {
+        color: #3498db;
+        text-align: center;
+      }
+      .form-container {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        max-width: 400px;
+        margin: 0 auto;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #333;
+      }
+      input[type="date"],
+      input[type="text"] {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+        transition: border-color 0.3s;
+      }
+      input[type="date"]:focus,
+      input[type="text"]:focus {
+        border-color: #3498db;
+        outline: none;
+      }
+      button {
+        width: 100%;
+        padding: 10px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s;
+      }
+      button:hover {
+        background-color: #2980b9;
+      }
+      .loader {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      .loading-text {
+        text-align: center;
+        font-family: Arial, sans-serif;
+        margin-top: 10px;
+      }
+      .error {
+        color: red;
+        text-align: center;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div class="form-container">
+        <div class="form-group">
+          <label for="dataInicial">Data Inicial*:</label>
+          <input type="date" id="dataInicial" v-model="data.date1" />
+        </div>
+        <div class="form-group">
+          <label for="dataFinal">Data Final*:</label>
+          <input type="date" id="dataFinal" v-model="data.date2" />
+        </div>
+        <div class="form-group">
+          <label for="filtro">Filtro:</label>
+          <input
+            type="text"
+            id="filtro"
+            v-model="data.filter"
+            placeholder="Digite o filtro"
+          />
+        </div>
+        <div class="form-group">
+          <label for="cookies">Cookies*:</label>
+          <input
+            type="text"
+            id="cookies"
+            v-model="data.cookies"
+            placeholder="Digite os cookies"
+          />
+        </div>
+        <button @click="loadData" :disabled="loading">Carregar</button>
+        <div class="loader" v-show="loading"></div>
+        <div class="loading-text" v-if="loading">{{ loadingText }}</div>
+        <div class="error" v-if="errorMessage">{{ errorMessage }}</div>
+      </div>
+    </div>
+
+    <script>
+      const { createApp, ref } = Vue;
+
+      createApp({
+        setup() {
+          const loading = ref(false);
+          const loadingText = ref("");
+          const errorMessage = ref("");
+
+          // Objeto data com as variáveis nomeadas
+          const data = ref({
+            date1: "",
+            date2: "",
+            filter: "",
+            cookies: "",
+            MAX_RETRIES: 3,
+          });
+
+          // Carregar dados do localStorage
+          const loadFromLocalStorage = () => {
+            const storedData =
+              JSON.parse(localStorage.getItem("siga.data")) || {};
+            data.value = { ...data.value, ...storedData };
+          };
+
+          // Salvar os dados no localStorage como um único objeto
+          const saveDataToLocalStorage = () => {
+            localStorage.setItem("siga.data", JSON.stringify(data.value));
+          };
+
+          const validateInputs = () => {
+            if (!data.value.date1 || !data.value.date2 || !data.value.cookies) {
+              errorMessage.value =
+                "Por favor, preencha todos os campos obrigatórios.";
+              return false;
+            }
+            errorMessage.value = ""; // Clear error message if all fields are filled
+            return true;
+          };
+
+          const loadData = (attempt = 0) => {
+            if (!validateInputs()) return;
+
+            loading.value = true;
+            loadingText.value = "Carregando... Por favor, aguarde.";
+            saveDataToLocalStorage();
+
+            google.script.run
+              .withSuccessHandler(handleSuccess)
+              .withFailureHandler((error) => {
+                console.log(
+                  `Erro ao buscar, indo para a tentativa: ${attempt + 1}`
+                );
+                if (attempt < data.value.MAX_RETRIES) {
+                  loadData(attempt + 1);
+                } else {
+                  handleError(error);
+                }
+                resetLoading();
+              })
+              .baixarSiga(data.value);
+          };
+
+          const handleSuccess = (data) => {
+            console.log("Dados retornados::: ", data);
+            loading.value = false;
+            resetLoading();
+            google.script.host.close();
+          };
+
+          const handleError = (error) => {
+            console.error(`Erro: ${error}`);
+            loading.value = false;
+          };
+
+          const resetLoading = () => {
+            loading.value = false;
+            loadingText.value = "";
+          };
+
+          // Carregar dados do localStorage na inicialização
+          loadFromLocalStorage();
+
+          return { loading, loadingText, loadData, data, errorMessage };
+        },
+      }).mount("#app");
+    </script>
+  </body>
+</html>

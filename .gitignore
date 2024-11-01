@@ -1,6 +1,14 @@
 downloads
 msg.json
 src/test
+.clasp.json
+uDS_Store
+
+# local env files
+.env
+.env.local
+.env.*.local
+
 
 # Logs
 logs

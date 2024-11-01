@@ -12,6 +12,13 @@ app.post("/siga", async (req, res) => {
   const { date1, date2, filter, cookies, username } = req.body;
   let userCookie = "";
   let cacheKey = "";
+  const msg = {
+    settings: { date1, date2, filter, cookies, betweenDates: [] },
+    tables: { igrejas: [], fluxos: [], eventos: [] },
+    success: false,
+    username,
+    errors: [],
+  };
 
   try {
     userCookie =
@@ -47,12 +54,6 @@ app.post("/siga", async (req, res) => {
     }
 
     const requestPromise = (async () => {
-      const msg = {
-        settings: { date1, date2, filter, cookies, betweenDates: [] },
-        tables: { igrejas: [], fluxos: [], eventos: [] },
-        username,
-        errors: [],
-      };
       const result = await searchSiga(msg);
       return result;
     })();
@@ -62,13 +63,14 @@ app.post("/siga", async (req, res) => {
       expiration: Date.now() + CACHE_DURATION,
     };
 
-    const result = await requestPromise;
-    res.json(result);
+    await requestPromise;
+    msg.success = true;
   } catch (error) {
+    msg.errors.push(error.message);
     console.log("Erro ao processar: ", error);
     if (processingClients[cacheKey]) {
       delete processingClients[cacheKey];
     }
-    res.status(500).send("Erro ao processar a requisição: " + error.message);
   }
+  res.json(msg);
 });
