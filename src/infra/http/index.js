@@ -72,5 +72,5 @@ app.post("/siga", async (req, res) => {
       delete processingClients[cacheKey];
     }
   }
-  res.json(msg);
+  res.statusCode(200).json(msg);
 });

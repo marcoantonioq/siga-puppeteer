@@ -13,36 +13,28 @@ function baixarSiga(payload = { username: "." }) {
     muteHttpExceptions: true,
   };
 
-  let msg = {};
+  let msg = {
+    success: false,
+    errors: [],
+  };
 
-  let attempts = 0;
-  let success = false;
-  const MAX_RETRIES = 3;
-
-  do {
-    try {
-      const response = UrlFetchApp.fetch(
-        "https://node.goias.ifg.edu.br/api/siga",
-        options
-      );
-      msg = JSON.parse(response.getContentText());
-      if (msg.tables?.igrejas.length) {
-        criarTabelasNoGoogleSheets(msg);
-        success = true;
-      }
-      console.log("Dados retornados: ", JSON.stringify(msg, null, 2));
-    } catch (error) {
-      console.log(`Erro (${attempts}): `, error);
-    } finally {
-      attempts++;
+  try {
+    const response = UrlFetchApp.fetch(
+      "https://node.goias.ifg.edu.br/api/siga",
+      options
+    );
+    msg = JSON.parse(response.getContentText());
+    if (msg.success && msg.tables?.igrejas.length) {
+      criarTabelasNoGoogleSheets(msg);
     }
-  } while (!success && attempts < MAX_RETRIES);
-
-  if (success) {
-    return msg;
-  } else {
-    throw new Error("Erro ao processar!!!");
+    console.log("Dados retornados: ", JSON.stringify(msg, null, 2));
+  } catch (error) {
+    msg.success = false;
+    const message = `Falha ${error}`;
+    msg.errors.push(message);
+    console.log(message);
   }
+  return msg;
 }
 
 function criarTabelasNoGoogleSheets(msg) {

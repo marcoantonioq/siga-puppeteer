@@ -134,11 +134,11 @@
 
           // Objeto data com as variáveis nomeadas
           const data = ref({
+            username: ".",
             date1: "",
             date2: "",
             filter: "",
             cookies: "",
-            MAX_RETRIES: 3,
           });
 
           // Carregar dados do localStorage
@@ -163,7 +163,7 @@
             return true;
           };
 
-          const loadData = (attempt = 0) => {
+          const loadData = () => {
             if (!validateInputs()) return;
 
             loading.value = true;
@@ -172,17 +172,7 @@
 
             google.script.run
               .withSuccessHandler(handleSuccess)
-              .withFailureHandler((error) => {
-                console.log(
-                  `Erro ao buscar, indo para a tentativa: ${attempt + 1}`
-                );
-                if (attempt < data.value.MAX_RETRIES) {
-                  loadData(attempt + 1);
-                } else {
-                  handleError(error);
-                }
-                resetLoading();
-              })
+              .withFailureHandler(handleError)
               .baixarSiga(data.value);
           };
 
@@ -190,12 +180,21 @@
             console.log("Dados retornados::: ", data);
             loading.value = false;
             resetLoading();
-            google.script.host.close();
+            if (data.status) {
+              google.script.host.close();
+            }
           };
 
           const handleError = (error) => {
-            console.error(`Erro: ${error}`);
-            loading.value = false;
+            (error) => {
+              console.log(
+                `Erro ao buscar, indo para a tentativa: ${attempt + 1}`
+              );
+              console.error(`Erro: ${error}`);
+              errorMessage.value = error.message;
+              loading.value = false;
+              resetLoading();
+            };
           };
 
           const resetLoading = () => {
