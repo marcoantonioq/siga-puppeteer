@@ -47,7 +47,9 @@ export const PuppeteerManager = {
   },
 
   async createPage({ cookies = "", domain = "" } = {}) {
-    const user = cookies.match(/(?:^|; )user=([^;]*)/)[1];
+    const user =
+      cookies.match(/(;| )(user)=([^;]*)/i)?.[3] ||
+      Math.random().toString(36).slice(2);
     const browser = await this.getBrowser(user);
     const page = await browser.newPage();
 
@@ -65,9 +67,9 @@ export const PuppeteerManager = {
     });
 
     if (cookies) {
-      const parsedCookies = cookies.split("; ").map((c) => {
+      const parsedCookies = cookies.split(";").map((c) => {
         const [name, value] = c.split("=");
-        return { name, value, domain, path: "/" };
+        return { name: name.trim(), value: value.trim(), domain, path: "/" };
       });
       await page.setCookie(...parsedCookies);
     }

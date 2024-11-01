@@ -10,17 +10,26 @@ app.use(express.json({ limit: "1gb" }));
 
 app.post("/siga", async (req, res) => {
   const { date1, date2, filter, cookies, username } = req.body;
-
-  const userCookie = cookies.match(/(?:^|; )user=([^;]*)/);
-  const cacheKey = userCookie
-    ? `siga.${userCookie[1]}.${date1}.${date2}.${filter}`
-    : null;
-
-  if (!cacheKey) {
-    return res.status(400).json({ error: "Cookie de usuário não encontrado." });
-  }
+  let userCookie = "";
+  let cacheKey = "";
 
   try {
+    userCookie =
+      cookies.match(/(;| )(user)=([^;]*)/i)?.[3] ||
+      Math.random().toString(36).slice(2);
+    if (!userCookie) throw new Error("Usuário cookie inválido!");
+    cacheKey = userCookie
+      ? `siga.${userCookie}.${date1}.${date2}.${filter}`
+      : null;
+
+    console.log("cache id: ", cacheKey);
+
+    if (!cacheKey) {
+      return res
+        .status(400)
+        .json({ error: "Cookie de usuário não encontrado." });
+    }
+
     if (!(date1 && date2 && cookies && username)) {
       return res
         .status(400)
@@ -42,6 +51,7 @@ app.post("/siga", async (req, res) => {
         settings: { date1, date2, filter, cookies, betweenDates: [] },
         tables: { igrejas: [], fluxos: [], eventos: [] },
         username,
+        errors: [],
       };
       const result = await searchSiga(msg);
       return result;
@@ -59,6 +69,6 @@ app.post("/siga", async (req, res) => {
     if (processingClients[cacheKey]) {
       delete processingClients[cacheKey];
     }
-    res.status(500).send("Erro ao processar a requisição.");
+    res.status(500).send("Erro ao processar a requisição: " + error.message);
   }
 });

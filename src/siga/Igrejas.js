@@ -50,7 +50,7 @@ export const getIgrejas = async (msg = {}) => {
         ?.value?.replace(/\r?\n|\r/g, "")
         ?.trim();
     });
-    if (!msg.username) throw new Error("Usuário não identificado.");
+    if (!msg.username) throw new Error(`Usuário não identificado.`);
     console.log("Usuário logado: ", msg.username);
 
     // Coletar igrejas
