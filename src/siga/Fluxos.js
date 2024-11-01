@@ -205,10 +205,10 @@ export const despesas = async (msg = {}) => {
                 msg.tables.fluxos.push(
                   Fluxo.create({
                     FLUXO: "Saída",
-                    REGIONAL: report.REGIONAL,
-                    IGREJA_ADM: report.IGREJA_DESC,
-                    IGREJA_COD: report.IGREJA_COD,
-                    IGREJA_TIPO: report.IGREJA_TIPO,
+                    REGIONAL: report?.REGIONAL,
+                    IGREJA_ADM: report?.IGREJA_DESC,
+                    IGREJA_COD: report?.IGREJA_COD,
+                    IGREJA_TIPO: report?.IGREJA_TIPO,
                     IGREJA: Localidade,
                     IGREJA_DESC: Localidade,
                     CATEGORIA: row[6],
