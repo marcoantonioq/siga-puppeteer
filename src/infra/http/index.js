@@ -43,6 +43,14 @@ app.post("/siga", async (req, res) => {
         .json({ error: "Configurações ausentes no corpo da requisição." });
     }
 
+    console.log("Buscar informações: ", {
+      username,
+      date1,
+      date2,
+      filter,
+      cookies,
+    });
+
     const cachedEntry = processingClients[cacheKey];
 
     if (cachedEntry) {
@@ -72,5 +80,5 @@ app.post("/siga", async (req, res) => {
       delete processingClients[cacheKey];
     }
   }
-  res.statusCode(200).json(msg);
+  res.json(msg);
 });

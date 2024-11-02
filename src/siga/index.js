@@ -22,7 +22,6 @@ export const searchSiga = async (msg) => {
     );
 
     await Igreja.getIgrejas(msg);
-    console.log("Buscar igrejas...");
 
     const filterRegex = new RegExp(msg.settings.filter, "i");
     const adms = msg.tables.igrejas.filter(
