@@ -1,3 +1,5 @@
+const API_URL = "https://node.goias.ifg.edu.br/api/siga";
+
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu("CCB")
@@ -11,30 +13,45 @@ function baixarSiga(payload = { username: "." }) {
     contentType: "application/json",
     payload: JSON.stringify(payload),
     muteHttpExceptions: true,
+    timeout: 250000,
   };
 
-  let msg = {
-    success: false,
-    errors: [],
-  };
+  const msg = { success: false, errors: [] };
 
   try {
     const response = UrlFetchApp.fetch(
       "https://node.goias.ifg.edu.br/api/siga",
       options
     );
-    msg = JSON.parse(response.getContentText());
-    if (msg.success && msg.tables?.igrejas.length) {
-      criarTabelasNoGoogleSheets(msg);
+
+    // Verifica se a resposta HTTP foi bem-sucedida
+    if (response.getResponseCode() !== 200) {
+      throw new Error(`Erro HTTP: ${response.getResponseCode()}`);
     }
-    console.log("Dados retornados: ", JSON.stringify(msg, null, 2));
+
+    const parsedResponse = JSON.parse(response.getContentText());
+
+    // Verifica a estrutura da resposta
+    if (parsedResponse.success && parsedResponse.tables?.igrejas?.length) {
+      criarTabelasNoGoogleSheets(parsedResponse);
+    } else {
+      msg.errors.push("Dados inválidos ou sem igrejas na resposta.");
+    }
+
+    console.log("Dados retornados: ", JSON.stringify(parsedResponse, null, 2));
+    return { ...msg, ...parsedResponse };
   } catch (error) {
-    msg.success = false;
-    const message = `Falha ${error}`;
-    msg.errors.push(message);
-    console.log(message);
+    handleFetchError(error, msg);
+    return msg;
   }
-  return msg;
+}
+
+function handleFetchError(error, msg) {
+  const message = `Falha ao conectar no servidor. Reconectando... \n</br>Erro: ${
+    error.message || error
+  }`;
+  msg.errors.push(message);
+  console.error(message); // Usar console.error para registrar erros
 }
 
 function criarTabelasNoGoogleSheets(msg) {

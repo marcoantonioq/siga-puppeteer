@@ -77,7 +77,6 @@
       }
       .loading-text {
         text-align: center;
-        font-family: Arial, sans-serif;
         margin-top: 10px;
       }
       .error {
@@ -104,7 +103,7 @@
             type="text"
             id="filtro"
             v-model="data.filter"
-            placeholder="Digite o filtro"
+            placeholder="Filtrar por administração (nome)"
           />
         </div>
         <div class="form-group">
@@ -132,7 +131,7 @@
           const loadingText = ref("");
           const errorMessage = ref("");
           const attemptCount = ref(0);
-          const maxAttempts = 3;
+          const maxAttempts = 5;
 
           const data = ref({
             username: ".",
@@ -162,7 +161,10 @@
             return true;
           };
 
-          const loadData = () => {
+          const sleep = (ms) =>
+            new Promise((resolve) => setTimeout(resolve, ms));
+
+          const loadData = async () => {
             if (!validateInputs()) return;
 
             loading.value = true;
@@ -170,41 +172,54 @@
             saveDataToLocalStorage();
             attemptCount.value = 0;
 
-            attemptLoadData();
+            while (attemptCount.value < maxAttempts) {
+              try {
+                attemptCount.value += 1;
+                await attemptLoadData();
+                loadingText.value = `Tentativa ${
+                  attemptCount.value + 1
+                } de ${maxAttempts}...`;
+                console.log(loadingText.value);
+              } catch (error) {
+                await sleep(5 * 60 * 1000);
+                console.log("Erro loadData: ", error);
+              }
+            }
+            errorMessage.value =
+              "Erro ao carregar dados após várias tentativas.";
+            resetLoading();
           };
 
           const attemptLoadData = () => {
-            google.script.run
-              .withSuccessHandler(handleSuccess)
-              .withFailureHandler(handleError)
-              .baixarSiga(data.value);
+            return new Promise((resolve, reject) => {
+              google.script.run
+                .withSuccessHandler((data) =>
+                  handleResponse(data, resolve, reject)
+                )
+                .withFailureHandler((error) =>
+                  handleError(error, resolve, reject)
+                )
+                .baixarSiga(data.value);
+            });
           };
 
-          const handleSuccess = (data) => {
-            console.log("Dados retornados::: ", data);
-            loading.value = false;
-            resetLoading();
+          const handleResponse = (data, resolve, reject) => {
             if (data.success) {
-              google.script.host.close();
-            }
-          };
-
-          const handleError = (error) => {
-            attemptCount.value += 1;
-            console.log(
-              `Erro ao buscar, indo para a tentativa: ${attemptCount.value}`
-            );
-
-            if (attemptCount.value < maxAttempts) {
-              loadingText.value = `Tentativa ${attemptCount.value} de ${maxAttempts}...`;
-              attemptLoadData();
-            } else {
-              errorMessage.value =
-                "Erro ao carregar dados após várias tentativas.";
-              console.error(`Erro: ${error}`);
               loading.value = false;
               resetLoading();
+              google.script.host.close();
+              resolve(data);
+            } else {
+              errorMessage.value = data.errors
+                ? data.errors.join("</br>\n")
+                : "";
+              reject(new Error(errorMessage.value));
             }
+          };
+
+          const handleError = (error, resolve, reject) => {
+            loading.value = false;
+            reject(new Error(errorMessage.value));
           };
 
           const resetLoading = () => {
